@@ -24,6 +24,10 @@ function formatAmount(amount: number | null): string {
   }).format(amount)
 }
 
+function sumAmounts(deals: Deal[]): number {
+  return deals.reduce<number>((sum, d) => sum + (d.amount ?? 0), 0)
+}
+
 function Card({
   deal,
   onDragStart,
@@ -91,8 +95,15 @@ export default function KanbanBoard({
             onDrop={() => handleDrop(value)}
             className={`rounded-2xl border p-3 min-h-[200px] ${COLUMN_STYLES[value]}`}
           >
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-semibold text-gray-700">{label}</h3>
+            <div className="flex items-start justify-between mb-3 gap-2">
+              <div>
+                <h3 className="text-sm font-semibold text-gray-700">
+                  {label}
+                </h3>
+                <p className="text-xs font-medium text-gray-500 mt-0.5">
+                  {formatAmount(sumAmounts(columnDeals))}
+                </p>
+              </div>
               <span className="text-xs text-gray-400 bg-white border border-gray-200 rounded-full px-2 py-0.5">
                 {columnDeals.length}
               </span>
