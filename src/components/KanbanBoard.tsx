@@ -1,6 +1,14 @@
 import { useRef, useState } from 'react'
 import { DEAL_STAGES, type Deal, type DealStage } from '../types'
 
+const COLUMN_STYLES: Record<DealStage, string> = {
+  lead: 'border-gray-200 bg-white',
+  working: 'border-gray-200 bg-white',
+  negotiation: 'border-gray-200 bg-white',
+  success: 'border-green-200 bg-green-50',
+  refused: 'border-red-200 bg-red-50',
+}
+
 interface KanbanBoardProps {
   deals: Deal[]
   onMoveDeal: (dealId: string, stage: DealStage) => Promise<void>
@@ -81,7 +89,7 @@ export default function KanbanBoard({
             key={value}
             onDragOver={(e) => e.preventDefault()}
             onDrop={() => handleDrop(value)}
-            className="bg-gray-50 rounded-lg p-3 min-h-[200px]"
+            className={`rounded-2xl border p-3 min-h-[200px] ${COLUMN_STYLES[value]}`}
           >
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-sm font-semibold text-gray-700">{label}</h3>
