@@ -9,7 +9,7 @@ create table if not exists public.deals (
   amount numeric,
   note text,
   stage text not null default 'lead',
-  user_id uuid not null references auth.users (id) on delete cascade,
+  user_id uuid not null default auth.uid() references auth.users (id) on delete cascade,
   created_at timestamptz not null default now()
 );
 

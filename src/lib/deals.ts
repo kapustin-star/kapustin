@@ -23,9 +23,17 @@ export interface NewDealInput {
 }
 
 export async function createDeal(input: NewDealInput): Promise<Deal> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    throw new Error('Пользователь не авторизован')
+  }
+
   const { data, error } = await supabase
     .from('deals')
-    .insert({ ...input, stage: 'lead' })
+    .insert({ ...input, stage: 'lead', user_id: user.id })
     .select()
     .single()
 
