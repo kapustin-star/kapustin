@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { supabase } from './lib/supabase'
-import { createDeal, fetchDeals, updateDealStage } from './lib/deals'
-import type { NewDealInput } from './lib/deals'
+import { createDeal, deleteDeal, fetchDeals, updateDeal, updateDealStage } from './lib/deals'
+import type { NewDealInput, UpdateDealInput } from './lib/deals'
 import type { Deal, DealStage } from './types'
 import AuthScreen from './components/AuthScreen'
 import KanbanBoard from './components/KanbanBoard'
 import NewDealForm from './components/NewDealForm'
+import DealModal from './components/DealModal'
 
 export default function App() {
   const [session, setSession] = useState<Session | null>(null)
@@ -15,6 +16,7 @@ export default function App() {
   const [dealsLoading, setDealsLoading] = useState(true)
   const [dealsError, setDealsError] = useState('')
   const [showNewDeal, setShowNewDeal] = useState(false)
+  const [selectedDeal, setSelectedDeal] = useState<Deal | null>(null)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -61,11 +63,36 @@ export default function App() {
     setDeals((prev) => [newDeal, ...prev])
   }
 
+  function onDealWon(deal: Deal) {
+    // сюда позже подключим уведомления/интеграции
+    console.log('Сделка в статусе "Успех" (won):', deal)
+  }
+
   async function handleMoveDeal(dealId: string, stage: DealStage) {
+    const updated = deals.find((d) => d.id === dealId)
     setDeals((prev) =>
       prev.map((d) => (d.id === dealId ? { ...d, stage } : d)),
     )
     await updateDealStage(dealId, stage)
+
+    if (updated && stage === 'success') {
+      onDealWon({ ...updated, stage })
+    }
+  }
+
+  async function handleUpdateDeal(input: UpdateDealInput) {
+    if (!selectedDeal) return
+    const updated = await updateDeal(selectedDeal.id, input)
+    setDeals((prev) => prev.map((d) => (d.id === updated.id ? updated : d)))
+    if (updated.stage === 'success') {
+      onDealWon(updated)
+    }
+  }
+
+  async function handleDeleteDeal() {
+    if (!selectedDeal) return
+    await deleteDeal(selectedDeal.id)
+    setDeals((prev) => prev.filter((d) => d.id !== selectedDeal.id))
   }
 
   if (loading) {
@@ -116,7 +143,11 @@ export default function App() {
             Пока нет сделок. Нажмите «+ Новая сделка», чтобы добавить первую.
           </p>
         ) : (
-          <KanbanBoard deals={deals} onMoveDeal={handleMoveDeal} />
+          <KanbanBoard
+            deals={deals}
+            onMoveDeal={handleMoveDeal}
+            onSelect={setSelectedDeal}
+          />
         )}
       </div>
 
@@ -124,6 +155,15 @@ export default function App() {
         <NewDealForm
           onSubmit={handleCreateDeal}
           onClose={() => setShowNewDeal(false)}
+        />
+      )}
+
+      {selectedDeal && (
+        <DealModal
+          deal={selectedDeal}
+          onSave={handleUpdateDeal}
+          onDelete={handleDeleteDeal}
+          onClose={() => setSelectedDeal(null)}
         />
       )}
     </main>

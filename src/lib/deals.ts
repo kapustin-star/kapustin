@@ -44,11 +44,46 @@ export async function createDeal(input: NewDealInput): Promise<Deal> {
   return data as Deal
 }
 
+export interface UpdateDealInput {
+  client: string
+  company: string
+  contact: string
+  amount: number | null
+  note: string
+  stage: DealStage
+}
+
+export async function updateDeal(
+  id: string,
+  input: UpdateDealInput,
+): Promise<Deal> {
+  const { data, error } = await supabase
+    .from('deals')
+    .update(input)
+    .eq('id', id)
+    .select()
+    .single()
+
+  if (error) {
+    throw new Error(error.message)
+  }
+
+  return data as Deal
+}
+
 export async function updateDealStage(id: string, stage: DealStage): Promise<void> {
   const { error } = await supabase
     .from('deals')
     .update({ stage })
     .eq('id', id)
+
+  if (error) {
+    throw new Error(error.message)
+  }
+}
+
+export async function deleteDeal(id: string): Promise<void> {
+  const { error } = await supabase.from('deals').delete().eq('id', id)
 
   if (error) {
     throw new Error(error.message)

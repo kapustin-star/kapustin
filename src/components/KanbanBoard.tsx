@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { DEAL_STAGES, type Deal, type DealStage } from '../types'
 
 interface KanbanBoardProps {
   deals: Deal[]
   onMoveDeal: (dealId: string, stage: DealStage) => Promise<void>
+  onSelect: (deal: Deal) => void
 }
 
 function formatAmount(amount: number | null): string {
@@ -15,12 +16,24 @@ function formatAmount(amount: number | null): string {
   }).format(amount)
 }
 
-function Card({ deal, onDragStart }: { deal: Deal; onDragStart: () => void }) {
+function Card({
+  deal,
+  onDragStart,
+  onDragEnd,
+  onClick,
+}: {
+  deal: Deal
+  onDragStart: () => void
+  onDragEnd: () => void
+  onClick: () => void
+}) {
   return (
     <div
       draggable
       onDragStart={onDragStart}
-      className="bg-white border border-gray-200 rounded-lg p-3 shadow-sm cursor-grab active:cursor-grabbing select-none"
+      onDragEnd={onDragEnd}
+      onClick={onClick}
+      className="bg-white border border-gray-200 rounded-lg p-3 shadow-sm cursor-grab active:cursor-grabbing select-none hover:border-gray-300"
     >
       <p className="font-medium text-gray-900 truncate">{deal.client}</p>
       {deal.company && (
@@ -33,9 +46,14 @@ function Card({ deal, onDragStart }: { deal: Deal; onDragStart: () => void }) {
   )
 }
 
-export default function KanbanBoard({ deals, onMoveDeal }: KanbanBoardProps) {
+export default function KanbanBoard({
+  deals,
+  onMoveDeal,
+  onSelect,
+}: KanbanBoardProps) {
   const [draggingId, setDraggingId] = useState<string | null>(null)
   const [pendingId, setPendingId] = useState<string | null>(null)
+  const wasDragging = useRef(false)
 
   async function handleDrop(stage: DealStage) {
     if (!draggingId) return
@@ -76,7 +94,20 @@ export default function KanbanBoard({ deals, onMoveDeal }: KanbanBoardProps) {
                 <Card
                   key={deal.id}
                   deal={deal}
-                  onDragStart={() => setDraggingId(deal.id)}
+                  onDragStart={() => {
+                    wasDragging.current = true
+                    setDraggingId(deal.id)
+                  }}
+                  onDragEnd={() => {
+                    setDraggingId(null)
+                    setTimeout(() => {
+                      wasDragging.current = false
+                    }, 0)
+                  }}
+                  onClick={() => {
+                    if (wasDragging.current) return
+                    onSelect(deal)
+                  }}
                 />
               ))}
             </div>
