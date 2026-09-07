@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { supabase } from './lib/supabase'
-import { createDeal, fetchDeals } from './lib/deals'
+import { createDeal, fetchDeals, updateDealStage } from './lib/deals'
 import type { NewDealInput } from './lib/deals'
-import type { Deal } from './types'
+import type { Deal, DealStage } from './types'
 import AuthScreen from './components/AuthScreen'
 import KanbanBoard from './components/KanbanBoard'
 import NewDealForm from './components/NewDealForm'
@@ -61,6 +61,13 @@ export default function App() {
     setDeals((prev) => [newDeal, ...prev])
   }
 
+  async function handleMoveDeal(dealId: string, stage: DealStage) {
+    setDeals((prev) =>
+      prev.map((d) => (d.id === dealId ? { ...d, stage } : d)),
+    )
+    await updateDealStage(dealId, stage)
+  }
+
   if (loading) {
     return (
       <main className="min-h-screen flex items-center justify-center bg-white">
@@ -109,7 +116,7 @@ export default function App() {
             Пока нет сделок. Нажмите «+ Новая сделка», чтобы добавить первую.
           </p>
         ) : (
-          <KanbanBoard deals={deals} />
+          <KanbanBoard deals={deals} onMoveDeal={handleMoveDeal} />
         )}
       </div>
 

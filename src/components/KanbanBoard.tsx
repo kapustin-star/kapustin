@@ -1,7 +1,9 @@
-import { DEAL_STAGES, type Deal } from '../types'
+import { useState } from 'react'
+import { DEAL_STAGES, type Deal, type DealStage } from '../types'
 
 interface KanbanBoardProps {
   deals: Deal[]
+  onMoveDeal: (dealId: string, stage: DealStage) => Promise<void>
 }
 
 function formatAmount(amount: number | null): string {
@@ -13,9 +15,13 @@ function formatAmount(amount: number | null): string {
   }).format(amount)
 }
 
-function Card({ deal }: { deal: Deal }) {
+function Card({ deal, onDragStart }: { deal: Deal; onDragStart: () => void }) {
   return (
-    <div className="bg-white border border-gray-200 rounded-lg p-3 shadow-sm">
+    <div
+      draggable
+      onDragStart={onDragStart}
+      className="bg-white border border-gray-200 rounded-lg p-3 shadow-sm cursor-grab active:cursor-grabbing select-none"
+    >
       <p className="font-medium text-gray-900 truncate">{deal.client}</p>
       {deal.company && (
         <p className="text-sm text-gray-500 truncate">{deal.company}</p>
@@ -27,7 +33,27 @@ function Card({ deal }: { deal: Deal }) {
   )
 }
 
-export default function KanbanBoard({ deals }: KanbanBoardProps) {
+export default function KanbanBoard({ deals, onMoveDeal }: KanbanBoardProps) {
+  const [draggingId, setDraggingId] = useState<string | null>(null)
+  const [pendingId, setPendingId] = useState<string | null>(null)
+
+  async function handleDrop(stage: DealStage) {
+    if (!draggingId) return
+    const deal = deals.find((d) => d.id === draggingId)
+    if (!deal || deal.stage === stage) {
+      setDraggingId(null)
+      return
+    }
+
+    setDraggingId(null)
+    setPendingId(deal.id)
+    try {
+      await onMoveDeal(deal.id, stage)
+    } finally {
+      setPendingId(null)
+    }
+  }
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 w-full max-w-6xl">
       {DEAL_STAGES.map(({ value, label }) => {
@@ -35,6 +61,8 @@ export default function KanbanBoard({ deals }: KanbanBoardProps) {
         return (
           <div
             key={value}
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={() => handleDrop(value)}
             className="bg-gray-50 rounded-lg p-3 min-h-[200px]"
           >
             <div className="flex items-center justify-between mb-3">
@@ -45,12 +73,19 @@ export default function KanbanBoard({ deals }: KanbanBoardProps) {
             </div>
             <div className="flex flex-col gap-2">
               {columnDeals.map((deal) => (
-                <Card key={deal.id} deal={deal} />
+                <Card
+                  key={deal.id}
+                  deal={deal}
+                  onDragStart={() => setDraggingId(deal.id)}
+                />
               ))}
             </div>
           </div>
         )
       })}
+      {pendingId && (
+        <p className="text-sm text-gray-400 text-center">Сохранение...</p>
+      )}
     </div>
   )
 }

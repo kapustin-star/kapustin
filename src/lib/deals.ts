@@ -1,5 +1,5 @@
 import { supabase } from './supabase'
-import type { Deal } from '../types'
+import type { Deal, DealStage } from '../types'
 
 export async function fetchDeals(): Promise<Deal[]> {
   const { data, error } = await supabase
@@ -42,4 +42,15 @@ export async function createDeal(input: NewDealInput): Promise<Deal> {
   }
 
   return data as Deal
+}
+
+export async function updateDealStage(id: string, stage: DealStage): Promise<void> {
+  const { error } = await supabase
+    .from('deals')
+    .update({ stage })
+    .eq('id', id)
+
+  if (error) {
+    throw new Error(error.message)
+  }
 }
