@@ -28,6 +28,8 @@ function sumAmounts(deals: Deal[]): number {
   return deals.reduce<number>((sum, d) => sum + (d.amount ?? 0), 0)
 }
 
+const DRAG_THRESHOLD = 5
+
 function Card({
   deal,
   onDragStart,
@@ -39,12 +41,34 @@ function Card({
   onDragEnd: () => void
   onClick: () => void
 }) {
+  const startPos = useRef<{ x: number; y: number } | null>(null)
+  const moved = useRef(false)
+
   return (
     <div
       draggable
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
-      onClick={onClick}
+      onClick={(e) => {
+        e.stopPropagation()
+        if (moved.current) return
+        onClick()
+      }}
+      onPointerDown={(e) => {
+        moved.current = false
+        startPos.current = { x: e.clientX, y: e.clientY }
+      }}
+      onPointerMove={(e) => {
+        if (!startPos.current) return
+        const dx = e.clientX - startPos.current.x
+        const dy = e.clientY - startPos.current.y
+        if (Math.sqrt(dx * dx + dy * dy) > DRAG_THRESHOLD) {
+          moved.current = true
+        }
+      }}
+      onPointerUp={() => {
+        startPos.current = null
+      }}
       className="bg-white border border-gray-200 rounded-lg p-3 shadow-sm cursor-grab active:cursor-grabbing select-none hover:border-gray-300"
     >
       <p className="font-medium text-gray-900 truncate">{deal.client}</p>
@@ -65,7 +89,6 @@ export default function KanbanBoard({
 }: KanbanBoardProps) {
   const [draggingId, setDraggingId] = useState<string | null>(null)
   const [pendingId, setPendingId] = useState<string | null>(null)
-  const wasDragging = useRef(false)
 
   async function handleDrop(stage: DealStage) {
     if (!draggingId) return
@@ -113,20 +136,9 @@ export default function KanbanBoard({
                 <Card
                   key={deal.id}
                   deal={deal}
-                  onDragStart={() => {
-                    wasDragging.current = true
-                    setDraggingId(deal.id)
-                  }}
-                  onDragEnd={() => {
-                    setDraggingId(null)
-                    setTimeout(() => {
-                      wasDragging.current = false
-                    }, 0)
-                  }}
-                  onClick={() => {
-                    if (wasDragging.current) return
-                    onSelect(deal)
-                  }}
+                  onDragStart={() => setDraggingId(deal.id)}
+                  onDragEnd={() => setDraggingId(null)}
+                  onClick={() => onSelect(deal)}
                 />
               ))}
             </div>
